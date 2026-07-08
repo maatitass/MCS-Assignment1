@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+
+.venv/
+.env
+
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+results/*-test/
+
+# LaTeX build artifacts (il PDF viene comunque versionato)
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
