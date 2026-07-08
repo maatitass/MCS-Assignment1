@@ -50,7 +50,7 @@
 
 \section{I metodi e la libreria}
 
-\begin{frame}{Criterio di arresto e teoria dello Splitting}
+\begin{frame}{Criterio di arresto e Splitting}
     \begin{itemize}
         \item L'iterazione si ferma quando il residuo diviso per $\|\mathbf{b}\|$ scende sotto la tolleranza, oppure se si supera il limite sul numero di iterazioni.
         \[ \frac{\|\mathbf{b} - A\mathbf{x}^{(k)}\|}{\|\mathbf{b}\|} < \text{tolleranza} \]
@@ -282,14 +282,14 @@
 \newsavebox{\iterbox}
 \sbox{\iterbox}{\includegraphics{../results/plots/iterations.png}}
 
-\begin{frame}{Numero di iterazioni per tolleranza (Parte Superiore)}
+\begin{frame}{Numero di iterazioni per tolleranza 1}
     \begin{figure}
         \centering
         \includegraphics[trim=0pt {0.5\ht\iterbox} 0pt 0pt, clip, width=\textwidth, height=0.85\textheight, keepaspectratio]{../results/plots/iterations.png}
     \end{figure}
 \end{frame}
 
-\begin{frame}{Numero di iterazioni per tolleranza (Parte Inferiore)}
+\begin{frame}{Numero di iterazioni per tolleranza 2}
     \begin{figure}
         \centering
         \includegraphics[trim=0pt 0pt 0pt {0.5\ht\iterbox}, clip, width=\textwidth, height=0.85\textheight, keepaspectratio]{../results/plots/iterations.png}
@@ -299,14 +299,14 @@
 \newsavebox{\errbox}
 \sbox{\errbox}{\includegraphics{../results/plots/relative_error.png}}
 
-\begin{frame}{Errore relativo misurato (Parte Superiore)}
+\begin{frame}{Errore relativo misurato 1}
     \begin{figure}
         \centering
         \includegraphics[trim=0pt {0.5\ht\errbox} 0pt 0pt, clip, width=\textwidth, height=0.85\textheight, keepaspectratio]{../results/plots/relative_error.png}
     \end{figure}
 \end{frame}
 
-\begin{frame}{Errore relativo misurato (Parte Inferiore)}
+\begin{frame}{Errore relativo misurato 2}
     \begin{figure}
         \centering
         \includegraphics[trim=0pt 0pt 0pt {0.5\ht\errbox}, clip, width=\textwidth, height=0.85\textheight, keepaspectratio]{../results/plots/relative_error.png}
@@ -324,14 +324,14 @@
 \newsavebox{\timebox}
 \sbox{\timebox}{\includegraphics{../results/plots/time.png}}
 
-\begin{frame}{Tempi totali di calcolo (Parte Superiore)}
+\begin{frame}{Tempi totali di calcolo 1}
     \begin{figure}
         \centering
         \includegraphics[trim=0pt {0.5\ht\timebox} 0pt 0pt, clip, width=\textwidth, height=0.85\textheight, keepaspectratio]{../results/plots/time.png}
     \end{figure}
 \end{frame}
 
-\begin{frame}{Tempi totali di calcolo (Parte Inferiore)}
+\begin{frame}{Tempi totali di calcolo 2}
     \begin{figure}
         \centering
         \includegraphics[trim=0pt 0pt 0pt {0.5\ht\timebox}, clip, width=\textwidth, height=0.85\textheight, keepaspectratio]{../results/plots/time.png}
@@ -349,14 +349,14 @@
 \newsavebox{\convbox}
 \sbox{\convbox}{\includegraphics{../results/plots/convergence.png}}
 
-\begin{frame}{Storia di convergenza (Parte Superiore)}
+\begin{frame}{Storia di convergenza 1}
     \begin{figure}
         \centering
         \includegraphics[trim=0pt {0.5\ht\convbox} 0pt 0pt, clip, width=\textwidth, height=0.85\textheight, keepaspectratio]{../results/plots/convergence.png}
     \end{figure}
 \end{frame}
 
-\begin{frame}{Storia di convergenza (Parte Inferiore)}
+\begin{frame}{Storia di convergenza 2}
     \begin{figure}
         \centering
         \includegraphics[trim=0pt 0pt 0pt {0.5\ht\convbox}, clip, width=\textwidth, height=0.85\textheight, keepaspectratio]{../results/plots/convergence.png}
@@ -392,7 +392,7 @@
     \end{figure}
 \end{frame}
 
-\begin{frame}{Confronto conclusivo delle performance}
+\begin{frame}{Confronto delle performance}
     \begin{table}
         \centering
         \small
