@@ -118,7 +118,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("results"),
+        default=Path(__file__).resolve().parent.parent / "results",
         help="Cartella di output, default assignment 1/results.",
     )
     parser.add_argument(
@@ -135,7 +135,7 @@ def _resolve_matrices(args: argparse.Namespace, base_dir: Path) -> list[Path]:
     if args.matrix:
         paths = args.matrix
     else:
-        data_dir = base_dir / "dati"
+        data_dir = base_dir.parent / "dati"
         paths = sorted(data_dir.glob("*.mtx"))
         if not paths:
             raise FileNotFoundError(f"Nessuna matrice .mtx trovata in: {data_dir}")

@@ -354,7 +354,7 @@ def main() -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Grafici di approfondimento (MCS Assignment 1)")
-    parser.add_argument("--output", type=Path, default=Path("results"),
+    parser.add_argument("--output", type=Path, default=Path(__file__).resolve().parent.parent / "results",
                         help="Cartella con results.csv/cond.csv e output plots/, default results.")
     parser.add_argument("--conv-tol", type=float, default=1e-10,
                         help="Tolleranza per la storia di convergenza, default 1e-10.")
