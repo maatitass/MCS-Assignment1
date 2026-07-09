@@ -44,16 +44,20 @@
         \item Scopo del progetto è risolvere sistemi lineari con quattro metodi iterativi.
         \item La libreria si limita al caso di matrici simmetriche e definite positive.
         \item La parte che calcola la soluzione è scritta da zero usando le librerie standard solo per operazioni vettoriali elementari.
-        \item Il lavoro è validato misurando l'errore relativo rispetto alla soluzione esatta fissa.
     \end{itemize}
 \end{frame}
 
 \section{I metodi e la libreria}
 
-\begin{frame}{Criterio di arresto e Splitting}
+\begin{frame}{Criterio di arresto}
     \begin{itemize}
         \item L'iterazione si ferma quando il residuo diviso per $\|\mathbf{b}\|$ scende sotto la tolleranza, oppure se si supera il limite sul numero di iterazioni.
         \[ \frac{\|\mathbf{b} - A\mathbf{x}^{(k)}\|}{\|\mathbf{b}\|} < \text{tolleranza} \]
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Splitting}
+    \begin{itemize}
         \item I metodi stazionari si basano su uno splitting della matrice $A = P - N$, dove $P$ e $N$ non dipendono dall'iterazione.
         \item L'idea è scegliere $P$ in modo che sia facile da risolvere, ottenendo la formula iterativa:
         \[ \mathbf{x}^{(k+1)} = \mathbf{x}^{(k)} + P^{-1}\mathbf{r}^{(k)} \]
@@ -80,13 +84,22 @@
     \end{itemize}
 \end{frame}
 
+\begin{frame}{Minimizzazione e Condizionamento}
+    \begin{itemize}
+        \item Per matrici SPD risolvere il sistema equivale a cercare il minimo della forma quadratica:
+        \[ \Phi(\mathbf{y})=\frac{1}{2}\,\mathbf{y}^{T}A\mathbf{y}-\mathbf{b}^{T}\mathbf{y} \]
+        \item La geometria di questa funzione dipende dagli autovalori della matrice.
+        \item Il numero di condizionamento $\kappa(A) = \lambda_{\max}/\lambda_{\min}$ indica quanto la funzione parabolica sia allungata.
+    \end{itemize}
+\end{frame}
+
 \begin{frame}{Metodo del Gradiente}
     \begin{itemize}
         \item Risolvere il sistema equivale a cercare il minimo muovendosi lungo la direzione di massima discesa, che è proprio il residuo $\mathbf{r}^{(k)}$.
         \[ \mathbf{x}^{(k+1)} = \mathbf{x}^{(k)} + \alpha_k \mathbf{r}^{(k)} \]
         \item Il passo $\alpha_k$ cambia a ogni iterazione, quindi il metodo non è stazionario.
         \item Nel codice calcoliamo una sola volta per iterazione il prodotto matrice--vettore e lo riusiamo.
-        \item Quando gli autovalori sono molto diversi la discesa procede a zig-zag e servono molti passi.
+        \item Quando il numero di condizionamento è molto alto la discesa procede a zig-zag e servono molti passi.
     \end{itemize}
 \end{frame}
 
@@ -96,7 +109,6 @@
         \item Il gradiente coniugato sceglie direzioni $A$-coniugate, così non serve più tornarci una volta minimizzato lungo una direzione.
         \[ \mathbf{x}^{(k+1)} = \mathbf{x}^{(k)} + \alpha_k \mathbf{d}^{(k)} \]
         \item In pratica il numero di iterazioni cresce circa come $\sqrt{\mathrm{cond}(A)}$, molto meno del gradiente semplice.
-        \item Come per il gradiente, si calcola un solo prodotto matrice--vettore per iterazione, riusato anche per il residuo.
     \end{itemize}
 \end{frame}
 
@@ -127,8 +139,8 @@
         \end{tabular}
     \end{table}
     \begin{itemize}
-        \item Le matrici della famiglia \texttt{spa} sono di media densità (circa il 18\%), con un condizionamento elevato (migliaia).
-        \item Le matrici \texttt{vem} sono molto sparse (sotto lo 0.5\%); hanno un autovalore minimo vicino a zero, ma il condizionamento resta nell'ordine delle centinaia.
+        \item Le matrici della famiglia \texttt{spa} sono di media densità, con un condizionamento elevato.
+        \item Le matrici \texttt{vem} sono molto sparse; hanno un autovalore minimo vicino a zero, ma il condizionamento resta nell'ordine delle centinaia.
     \end{itemize}
 \end{frame}
 
@@ -367,48 +379,15 @@
     \begin{itemize}
         \item I risultati pratici ottenuti nel test ricalcano perfettamente le crescite teoriche attese dalle equazioni.
         \item Il singolo passo di Gauss-Seidel porta a tempi fissi d'esecuzione maggiori a causa del blocco sequenziale.
-        \item Il rapporto calcolato tra errore relativo e residuo relativo non supera mai il confine segnato dal condizionamento.
     \end{itemize}
 \end{frame}
 
-\begin{frame}{Iterazioni e numero di condizionamento}
-    \begin{figure}
-        \centering
-        \includegraphics[width=\textwidth,height=0.85\textheight,keepaspectratio]{../results/plots/iter_vs_cond.png}
-    \end{figure}
-\end{frame}
 
 \begin{frame}{Costo medio per operazione}
     \begin{figure}
         \centering
         \includegraphics[width=\textwidth,height=0.85\textheight,keepaspectratio]{../results/plots/cost_per_iter.png}
     \end{figure}
-\end{frame}
-
-\begin{frame}{Amplificazione del residuo}
-    \begin{figure}
-        \centering
-        \includegraphics[width=\textwidth,height=0.85\textheight,keepaspectratio]{../results/plots/error_vs_residual.png}
-    \end{figure}
-\end{frame}
-
-\begin{frame}{Confronto delle performance}
-    \begin{table}
-        \centering
-        \small
-        \begin{tabular}{lcccc}
-        \toprule
-        Esito Finale & Jacobi & Gauss-Seidel & Gradiente & Gradiente Coniugato \\
-        \midrule
-        Iterazioni Totali & molte & medie & moltissime & pochissime \\
-        Dipendenza Tolleranza & lineare & lineare & lineare & lineare \\
-        Dipendenza $\kappa(A)$ & varia & varia & $\approx\kappa$ & $\approx\sqrt{\kappa}$ \\
-        Costo per Passo & basso & alto & basso & basso \\
-        Miglior velocità & Nessuno & matrici dense & Nessuno & matrici vuote \\
-        Robustezza & media & media & bassa & altissima \\
-        \bottomrule
-        \end{tabular}
-    \end{table}
 \end{frame}
 
 \begin{frame}{Riepilogo delle metriche essenziali}
@@ -422,10 +401,10 @@
 
 \begin{frame}{Conclusioni}
     \begin{itemize}
-        \item Lo scheletro base dell'architettura fornisce un tracciamento sicuro per la validazione iterativa totale.
-        \item Il vincolo di blocco sul residuo garantisce la correttezza della stima prevenendo calcoli inutili.
-        \item I risultati inquadrano il gradiente coniugato come la selezione operativa più pratica per efficacia.
-        \item Gauss-Seidel mantiene il proprio profilo prestazionale elevato nei casi specifici di reticoli mediamente densi.
+        \item Il criterio di arresto basato sul residuo scalato si è dimostrato stabile ed efficace per ogni caso analizzato.
+        \item Il gradiente coniugato è la scelta più robusta ed efficiente: annulla la discesa a zig-zag ed è il metodo più rapido per matrici molto sparse.
+        \item Gauss-Seidel si difende in modo eccellente sulle matrici a media densità: il risparmio di iterazioni compensa il peso del singolo passo.
+        \item Jacobi e gradiente semplice non risultano mai la scelta ottimale per le performance, ma restano essenziali come base matematica e di riferimento teorico.
     \end{itemize}
 \end{frame}
 

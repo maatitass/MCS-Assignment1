@@ -231,7 +231,7 @@ Si prende come $P$ la diagonale di $A$ e come $N$ il resto con segno opposto. La
 $i$-esima componente si aggiorna isolando $x_i$ dalla $i$-esima equazione e
 usando i valori dell'iterazione precedente:
 \[
-x_i^{(k+1)}=\frac{1}{a_{ii}}\Big(b_i-\sum_{j\neq i} a_{ij}\,x_j^{(k)}\Big).
+x^{(k+1)}=x^{(k)} + D^{-1}r^{(k)}.
 \]
 Dato che $P$ è diagonale, la sua inversa è immediata e $P^{-1}\mathbf{r}$ è solo
 il prodotto componente per componente fra il residuo e i reciproci della
@@ -562,8 +562,7 @@ cambia con la tolleranza. Cambia invece la posizione delle rette. Sulle matrici
 a parità di tolleranza raggiunge un errore più piccolo. Sulle \texttt{spa} le
 quattro rette sono più vicine. Vale la pena notare che l'errore non è uguale alla
 tolleranza ma può essere più grande o più piccolo: il legame tra residuo ed
-errore passa per il condizionamento della matrice, come riprendiamo nel grafico
-di amplificazione.
+errore passa per il condizionamento della matrice.
 
 \subsection{Tempo di calcolo}
 La figura seguente mostra il tempo di calcolo.
@@ -609,24 +608,6 @@ nettamente: dopo poche decine di iterazioni scende sotto la tolleranza in modo
 quasi verticale, mentre Jacobi, Gauss--Seidel e gradiente continuano a scendere
 piano per migliaia di iterazioni quasi sovrapposti.
 
-\subsection{Iterazioni e numero di condizionamento}
-Il grafico seguente mette le iterazioni in funzione del numero di
-condizionamento.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.82\textwidth]{iter_vs_cond.png}
-\caption{Iterazioni in funzione di $\kappa(A)$ a $\texttt{tol}=10^{-8}$.}
-\label{fig:itercond}
-\end{figure}
-
-\noindent Le curve di Jacobi e Gauss--Seidel non sono monotone in
-$\kappa(A)$: ad esempio Gauss--Seidel richiede poche iterazioni sulle matrici
-\texttt{spa}, che pure hanno il condizionamento più alto. Il motivo è che il
-numero di condizionamento da solo non basta a prevedere le iterazioni di questi
-due metodi: conta anche la struttura della matrice e la distribuzione degli
-autovalori. I quattro punti, inoltre, vengono da due famiglie di matrici diverse,
-quindi il confronto va letto come tendenza, non come legge esatta.
 
 \subsection{Costo medio per iterazione}
 La figura seguente mostra il tempo medio di una singola iterazione, cioè
@@ -652,30 +633,6 @@ prodotto matrice--vettore. Quindi Gauss--Seidel conviene quando il taglio nelle
 iterazioni ripaga il maggior costo del singolo passo, cosa che succede sulle
 \texttt{spa} ma non sulle \texttt{vem}.
 
-\subsection{Amplificazione errore/residuo}
-La figura seguente mostra il rapporto tra errore relativo e residuo
-relativo, confrontato con il numero di condizionamento.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.86\textwidth]{error_vs_residual.png}
-\caption{Rapporto fra errore relativo e residuo relativo a $\texttt{tol}=10^{-8}$.
-La linea tratteggiata nera su ogni gruppo è $\mathrm{cond}(A)$, limite superiore
-teorico del rapporto.}
-\label{fig:ampl}
-\end{figure}
-
-\noindent Il residuo piccolo non garantisce da solo un errore
-altrettanto piccolo: il legame tra i due passa per il condizionamento. Vale la
-stima $\text{errore relativo}\le \kappa(A)\cdot\text{residuo relativo}$, e il
-grafico verifica che per ogni metodo il rapporto resta sotto la linea di
-$\mathrm{cond}(A)$. Il limite è però pessimistico: i rapporti reali sono molto più
-bassi del condizionamento. Il gradiente semplice è quello che amplifica di più,
-vicino a $1000$ sulle \texttt{spa}; il gradiente coniugato è quello che amplifica
-di meno e sulle matrici \texttt{vem} arriva sotto $1$, cioè ottiene un errore
-addirittura più piccolo del proprio residuo. Questo spiega perché nel grafico
-dell'errore relativo il gradiente coniugato stava più in basso degli altri sulle
-\texttt{vem}.
 
 \subsection{Riepilogo}
 La figura seguente raccoglie tempo e iterazioni in due grafici a barre,

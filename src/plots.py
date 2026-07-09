@@ -184,74 +184,6 @@ def plot_convergence(histories: dict[str, dict[str, list[float]]], tol: float,
     _save(fig, path)
 
 
-# ---------------------------------------------------------------------------
-# B) Iterazioni vs cond(A).
-# ---------------------------------------------------------------------------
-def plot_iter_vs_cond(rows: list[dict[str, str]], tol_label: str, path: Path) -> None:
-    import matplotlib.pyplot as plt
-
-    selected = [row for row in rows if row["tol"] == tol_label]
-    fig, ax = plt.subplots(figsize=(9, 6))
-
-    for method in _methods_present(selected):
-        points = [(float(row["cond"]), int(row["iterations"]))
-                  for row in selected
-                  if row["method"] == method and "cond" in row]
-        points.sort()
-        if not points:
-            continue
-        conds = [p[0] for p in points]
-        iters = [p[1] for p in points]
-        ax.plot(conds, iters, marker="o", label=method,
-                color=METHOD_COLORS.get(method))
-
-    ax.set_title(f"Iterazioni vs numero di condizionamento (tol = {tol_label})")
-    ax.set_xlabel(r"$\kappa(A) = \lambda_{max} / \lambda_{min}$")
-    ax.set_ylabel("Iterazioni")
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.grid(True, which="both", alpha=0.3)
-    ax.legend()
-    _save(fig, path)
-
-
-# ---------------------------------------------------------------------------
-# C) Amplificazione errore/residuo.
-# ---------------------------------------------------------------------------
-def plot_error_vs_residual(rows: list[dict[str, str]], tol_label: str, path: Path) -> None:
-    import matplotlib.pyplot as plt
-
-    selected = [row for row in rows if row["tol"] == tol_label]
-    matrices = sorted({row["matrix"] for row in selected})
-    methods = _methods_present(selected)
-
-    ratios = defaultdict(dict)  # ratios[matrix][method] = err/res
-    for row in selected:
-        res = float(row["residual_relative"])
-        if res > 0:
-            ratios[row["matrix"]][row["method"]] = float(row["relative_error"]) / res
-
-    fig, ax = plt.subplots(figsize=(10, 6))
-    _grouped_bars(ax, matrices, methods,
-                  lambda mat, met: ratios.get(mat, {}).get(met))
-
-    # Riferimento: il rapporto err/res e' limitato superiormente da cond(A).
-    cond_map = {row["matrix"]: float(row["cond"]) for row in selected if "cond" in row}
-    for i, matrix_name in enumerate(matrices):
-        if matrix_name in cond_map:
-            ax.hlines(cond_map[matrix_name], i - 0.4, i + 0.4,
-                      color="black", linestyle="--", linewidth=1.2,
-                      label="cond(A)" if i == 0 else "_nolegend_")
-
-    ax.set_title(f"Amplificazione errore/residuo (tol = {tol_label})")
-    ax.set_xlabel("Matrice")
-    ax.set_ylabel(r"$\frac{\|x-x^*\|/\|x^*\|}{\|r\|/\|b\|}$  (≈ fattore di amplificazione)")
-    ax.set_yscale("log")
-    ax.set_xticks(range(len(matrices)))
-    ax.set_xticklabels(matrices)
-    ax.grid(True, axis="y", which="both", alpha=0.3)
-    ax.legend()
-    _save(fig, path)
 
 
 # ---------------------------------------------------------------------------
@@ -336,8 +268,6 @@ def main() -> None:
     bar_tol = _closest_tol(rows, args.bar_tol)
 
     print("Genero i grafici dal CSV...")
-    plot_iter_vs_cond(rows, bar_tol, plots_dir / "iter_vs_cond.png")
-    plot_error_vs_residual(rows, bar_tol, plots_dir / "error_vs_residual.png")
     plot_cost_per_iter(rows, bar_tol, plots_dir / "cost_per_iter.png")
     plot_summary_bars(rows, bar_tol, plots_dir / "summary_bars.png")
 
@@ -346,8 +276,7 @@ def main() -> None:
     plot_convergence(histories, args.conv_tol, plots_dir / "convergence.png")
 
     print(f"\nGrafici scritti in: {plots_dir}")
-    for name in ("convergence.png", "iter_vs_cond.png", "error_vs_residual.png",
-                 "cost_per_iter.png", "summary_bars.png"):
+    for name in ("convergence.png", "cost_per_iter.png", "summary_bars.png"):
         print(f"  - {name}")
 
 
