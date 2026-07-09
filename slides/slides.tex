@@ -51,16 +51,19 @@
 
 \begin{frame}{Criterio di arresto}
     \begin{itemize}
-        \item L'iterazione si ferma quando il residuo diviso per $\|\mathbf{b}\|$ scende sotto la tolleranza, oppure se si supera il limite sul numero di iterazioni.
-        \[ \frac{\|\mathbf{b} - A\mathbf{x}^{(k)}\|}{\|\mathbf{b}\|} < \text{tolleranza} \]
+        \item Tutti i metodi partono dal vettore iniziale nullo $\mathbf{x}^{(0)}=\mathbf{0}$.
+        \item L'iterazione si ferma quando il residuo scalato scende sotto la tolleranza, oppure superato il limite di passi.
+        \[ \frac{\|\mathbf{b} - A\mathbf{x}^{(k)}\|}{\|\mathbf{b}\|} < \texttt{tol} \]
     \end{itemize}
 \end{frame}
 
-\begin{frame}{Splitting}
+\begin{frame}{Metodi Stazionari e Splitting}
     \begin{itemize}
-        \item I metodi stazionari si basano su uno splitting della matrice $A = P - N$, dove $P$ e $N$ non dipendono dall'iterazione.
-        \item L'idea è scegliere $P$ in modo che sia facile da risolvere, ottenendo la formula iterativa:
+        \item Si basano su uno \emph{splitting} della matrice $A = P - N$.
+        \item Si definiscono \emph{stazionari} perché le matrici $P$ e $N$ rimangono fisse da un'iterazione all'altra.
+        \item Scegliendo $P$ facile da risolvere, la formula si manipola nella forma usata nel codice:
         \[ \mathbf{x}^{(k+1)} = \mathbf{x}^{(k)} + P^{-1}\mathbf{r}^{(k)} \]
+        \item La convergenza è garantita quando il raggio spettrale della matrice di iterazione $P^{-1}N$ è minore di 1.
     \end{itemize}
 \end{frame}
 
@@ -68,56 +71,58 @@
     \begin{itemize}
         \item Si prende come $P=D$ la diagonale di $A$ e come $N$ il resto con segno opposto.
         \[ \mathbf{x}^{(k+1)} = \mathbf{x}^{(k)} + D^{-1}\mathbf{r}^{(k)} \]
-        \item Dato che $D$ è diagonale, la sua inversa è immediata e l'aggiornamento usa i valori dell'iterazione precedente.
-        \item L'aggiornamento si fa con una operazione vettoriale, senza lenti cicli \texttt{for} di Python.
+        \item Essendo $D$ diagonale, l'inversa equivale a dividere ogni componente del residuo per l'elemento sulla diagonale.
+        \item Calcolando i reciproci all'inizio, l'aggiornamento si esegue con un'unica operazione vettoriale veloce.
         \item Una iterazione costa quindi un prodotto matrice--vettore più operazioni vettoriali di ordine $O(n)$.
     \end{itemize}
 \end{frame}
 
 \begin{frame}{Metodo di Gauss-Seidel}
     \begin{itemize}
-        \item Si prende come $P=L$ la parte triangolare inferiore di $A$, diagonale compresa.
-        \[ \mathbf{x}^{(k+1)} = \mathbf{x}^{(k)} + L^{-1}\mathbf{r}^{(k)} \]
-        \item La differenza rispetto a Jacobi è che si usano subito i valori già aggiornati in questa stessa iterazione.
-        \item Non serve mai invertire la matrice: il sistema si risolve per sostituzione in avanti, che è sequenziale e non vettorizzabile.
-        \item L'uso immediato dei valori aggiornati di solito fa convergere in meno iterazioni di Jacobi.
+        \item Si prende come $P=D+L$ la parte triangolare inferiore di $A$, diagonale compresa.
+        \[ \mathbf{x}^{(k+1)} = \mathbf{x}^{(k)} + (D+L)^{-1}\mathbf{r}^{(k)} \]
+        \item Non si calcola mai esplicitamente l'inversa: si procede risolvendo per sostituzione in avanti (dall'alto in basso).
+        \item La differenza rispetto a Jacobi è l'uso immediato dei valori appena calcolati per le righe successive.
+        \item L'uso di informazioni aggiornate garantisce generalmente una convergenza più rapida rispetto a Jacobi.
     \end{itemize}
 \end{frame}
 
-\begin{frame}{Minimizzazione e Condizionamento}
+\begin{frame}{Metodi del gradiente: discesa nel paraboloide}
     \begin{itemize}
-        \item Per matrici SPD risolvere il sistema equivale a cercare il minimo della forma quadratica:
-        \[ \Phi(\mathbf{y})=\frac{1}{2}\,\mathbf{y}^{T}A\mathbf{y}-\mathbf{b}^{T}\mathbf{y} \]
-        \item La geometria di questa funzione dipende dagli autovalori della matrice.
-        \item Il numero di condizionamento $\kappa(A) = \lambda_{\max}/\lambda_{\min}$ indica quanto la funzione parabolica sia allungata.
+        \item Per matrici SPD risolvere il sistema equivale a trovare il punto di minimo di un paraboloide convesso:
+        \[ \phi(\mathbf{y})=\tfrac12\,\mathbf{y}^{t}A\mathbf{y}-\mathbf{b}^{t}\mathbf{y} \]
+        \item La geometria di questo paraboloide è dettata dagli autovalori della matrice.
+        \item Il numero di condizionamento $\kappa(A) = \lambda_{\max}/\lambda_{\min}$ indica quanto il paraboloide sia stretto e allungato.
     \end{itemize}
 \end{frame}
 
 \begin{frame}{Metodo del Gradiente}
     \begin{itemize}
-        \item Risolvere il sistema equivale a cercare il minimo muovendosi lungo la direzione di massima discesa, che è proprio il residuo $\mathbf{r}^{(k)}$.
+        \item Adotta la strategia più intuitiva: a ogni passo avanza lungo la direzione più ripida in discesa, ovvero il residuo $\mathbf{r}^{(k)}$.
         \[ \mathbf{x}^{(k+1)} = \mathbf{x}^{(k)} + \alpha_k \mathbf{r}^{(k)} \]
-        \item Il passo $\alpha_k$ cambia a ogni iterazione, quindi il metodo non è stazionario.
-        \item Nel codice calcoliamo una sola volta per iterazione il prodotto matrice--vettore e lo riusiamo.
-        \item Quando il numero di condizionamento è molto alto la discesa procede a zig-zag e servono molti passi.
+        \item Il difetto di questa strategia emerge quando la matrice è mal condizionata (valle lunga e stretta).
+        \item Il percorso compie continui rimbalzi da una parete all'altra con un andamento a \emph{zig-zag}.
+        \item Il metodo avanza pochissimo verso il minimo globale, impiegando migliaia di iterazioni per smorzare l'errore.
     \end{itemize}
 \end{frame}
 
 \begin{frame}{Metodo del Gradiente Coniugato}
     \begin{itemize}
-        \item Il difetto del gradiente è che può tornare a muoversi lungo una direzione su cui era già ottimale, da cui lo zig-zag.
-        \item Il gradiente coniugato sceglie direzioni $A$-coniugate, così non serve più tornarci una volta minimizzato lungo una direzione.
+        \item Elimina il problema dello zig-zag scegliendo direzioni di ricerca $\mathbf{d}^{(k)}$ che non interferiscono tra loro.
+        \item Tali direzioni sono \emph{$A$-coniugate}: una volta raggiunto il minimo lungo una direzione, nessun passo futuro lo disferà.
         \[ \mathbf{x}^{(k+1)} = \mathbf{x}^{(k)} + \alpha_k \mathbf{d}^{(k)} \]
-        \item In pratica il numero di iterazioni cresce circa come $\sqrt{\mathrm{cond}(A)}$, molto meno del gradiente semplice.
+        \item Ogni iterazione sistema definitivamente una dimensione: in aritmetica esatta convergerebbe in al più $n$ iterazioni.
+        \item In pratica il numero di iterazioni cresce solo proporzionalmente a $\sqrt{\kappa(A)}$.
     \end{itemize}
 \end{frame}
 
 \begin{frame}{Architettura della libreria}
     \begin{itemize}
-        \item I quattro metodi condividono lo stesso scheletro, per questo abbiamo scritto una classe base astratta \texttt{IterativeSolver}.
-        \item La classe base gestisce il vettore iniziale, il ciclo di arresto e il tempo, mentre le sottoclassi forniscono solo la propria iterazione.
-        \item Il risultato della risoluzione è raccolto in un oggetto \texttt{SolverResult} che contiene iterazioni, tempo, residuo e flag di convergenza.
-        \item Prima delle misurazioni chiamiamo \texttt{warmup()} per pagare una volta sola la compilazione JIT di \texttt{numba} e non falsare i tempi.
+        \item I metodi condividono uno scheletro comune tramite la classe base astratta \texttt{IterativeSolver}.
+        \item La classe base gestisce il vettore iniziale, il ciclo di arresto e il timer.
+        \item La logica matematica del singolo passo è delegata a oggetti \texttt{\_Iteration} specifici per ogni sottoclasse.
+        \item Il risultato è un oggetto \texttt{SolverResult} (iterazioni, tempo, residuo, convergenza).
+        \item Chiamiamo \texttt{warmup()} per pagare una volta sola la compilazione JIT di \texttt{numba} e non falsare i tempi.
     \end{itemize}
 \end{frame}
 
@@ -146,10 +151,10 @@
 
 \begin{frame}{Analisi dei risultati per matrice}
     \begin{itemize}
-        \item \textbf{\texttt{spa1}}: ha il condizionamento più alto in assoluto ($\kappa\approx2.0\cdot10^3$). Questo penalizza fortemente il gradiente semplice, mentre Gauss-Seidel converge in pochissimi passi.
-        \item \textbf{\texttt{spa2}}: è la matrice più grande ($n=3000$). Gauss-Seidel risulta in assoluto il più veloce, dato che il basso numero di iterazioni compensa il calcolo lento.
-        \item \textbf{\texttt{vem1}}: il gradiente coniugato è la scelta più efficiente: annulla la discesa a zig-zag e domina con tempi prossimi allo zero.
-        \item \textbf{\texttt{vem2}}: emerge di nuovo la robustezza del gradiente coniugato: le iterazioni seguono solo la radice del condizionamento e i tempi sono frazioni di millisecondo.
+        \item Sulla matrice \texttt{spa1} il condizionamento altissimo ($\kappa\approx2.0\cdot10^3$) penalizza fortemente il gradiente semplice, mentre Gauss-Seidel converge in pochi passi.
+        \item Sulla matrice \texttt{spa2} ($n=3000$) Gauss-Seidel risulta in assoluto il più veloce, dato che il basso numero di iterazioni compensa il calcolo lento.
+        \item Sulla matrice \texttt{vem1} il gradiente coniugato è la scelta più efficiente: annulla la discesa a zig-zag e domina con tempi prossimi allo zero.
+        \item Sulla matrice \texttt{vem2} emerge di nuovo la robustezza del gradiente coniugato: le iterazioni sono bassissime e i tempi sono frazioni di millisecondo.
     \end{itemize}
 \end{frame}
 
@@ -285,9 +290,9 @@
 
 \begin{frame}{Analisi delle iterazioni e dell'errore}
     \begin{itemize}
-        \item \textbf{Iterazioni:} il gradiente coniugato richiede pochissimi passi. Il gradiente semplice ne accumula migliaia sulle matrici \texttt{spa} a causa del percorso a zig-zag.
-        \item \textbf{Gauss-Seidel vs Jacobi:} Gauss-Seidel converge sempre in meno iterazioni perché riusa subito i valori appena aggiornati (fino a un decimo sulle \texttt{spa}).
-        \item \textbf{Errore relativo:} le rette scendono in modo regolare. L'errore resta sempre proporzionale alla tolleranza (la pendenza è quasi la stessa per tutti).
+        \item Il gradiente coniugato richiede pochissimi passi, mentre il gradiente semplice ne accumula migliaia sulle matrici \texttt{spa} a causa del percorso a zig-zag.
+        \item Gauss-Seidel converge sempre in meno iterazioni di Jacobi perché riusa subito i valori appena aggiornati (fino a un decimo sulle \texttt{spa}).
+        \item Le rette dell'errore relativo scendono in modo regolare: l'errore resta sempre proporzionale alla tolleranza con pendenza quasi uguale per tutti.
     \end{itemize}
 \end{frame}
 
@@ -327,9 +332,9 @@
 
 \begin{frame}{Tempi totali di calcolo}
     \begin{itemize}
-        \item \textbf{Sulle matrici \texttt{spa}:} il più veloce è Gauss-Seidel, perché converge in pochissime iterazioni e questo compensa il costo del passo sequenziale.
-        \item \textbf{Sulle matrici \texttt{vem}:} la situazione si ribalta, e il gradiente coniugato è di gran lunga il più veloce (frazioni di millisecondo), staccando nettamente gli altri tre.
-        \item \textbf{Gradiente semplice:} si conferma di gran lunga il più lento, in particolare sulle \texttt{spa}, arrivando quasi a 10 secondi su \texttt{spa2}.
+        \item Sulle matrici \texttt{spa} il più veloce è Gauss-Seidel, perché converge in pochissime iterazioni e questo compensa il costo del passo sequenziale.
+        \item Sulle matrici \texttt{vem} la situazione si ribalta: il gradiente coniugato è di gran lunga il più veloce (frazioni di millisecondo), staccando nettamente gli altri tre.
+        \item Il gradiente semplice si conferma di gran lunga il più lento, in particolare sulle \texttt{spa}, arrivando quasi a 10 secondi su \texttt{spa2}.
     \end{itemize}
 \end{frame}
 
@@ -352,9 +357,9 @@
 
 \begin{frame}{Storia di convergenza}
     \begin{itemize}
-        \item \textbf{Gauss-Seidel:} sulle matrici \texttt{spa} scende per primo e in modo ripido, toccando subito la tolleranza richiesta.
-        \item \textbf{Gradiente semplice:} continua a scendere molto lentamente per migliaia di iterazioni, segno inequivocabile della convergenza lenta a zig-zag.
-        \item \textbf{Gradiente coniugato:} ha un andamento più irregolare ma scende molto più in fretta, e nelle iterazioni finali la discesa subisce una chiara accelerata.
+        \item Sulle matrici \texttt{spa} Gauss-Seidel scende per primo e in modo ripido, toccando subito la tolleranza richiesta.
+        \item Il gradiente semplice continua a scendere molto lentamente per migliaia di iterazioni, segno inequivocabile della convergenza lenta a zig-zag.
+        \item Il gradiente coniugato ha un andamento più irregolare ma scende molto più in fretta, e nelle iterazioni finali la discesa subisce una chiara accelerata.
     \end{itemize}
 \end{frame}
 
@@ -375,10 +380,12 @@
     \end{figure}
 \end{frame}
 
-\begin{frame}{Condizionamento e Costo del singolo passaggio}
+\begin{frame}{Costo del singolo passaggio}
     \begin{itemize}
-        \item I risultati pratici ottenuti nel test ricalcano perfettamente le crescite teoriche attese dalle equazioni.
-        \item Il singolo passo di Gauss-Seidel porta a tempi fissi d'esecuzione maggiori a causa del blocco sequenziale.
+        \item Il costo di una singola iterazione cresce all'aumentare delle entrate non nulle (densità della matrice).
+        \item Jacobi, Gradiente e CG hanno un costo per iterazione simile, dominato dal prodotto matrice-vettore vettorializzato.
+        \item Il passo di Gauss-Seidel è più costoso a causa della sostituzione in avanti puramente sequenziale.
+        \item Gauss-Seidel conviene solo quando il grande risparmio di iterazioni ripaga la lentezza del singolo passo (es. matrici \texttt{spa}).
     \end{itemize}
 \end{frame}
 
