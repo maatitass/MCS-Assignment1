@@ -201,7 +201,7 @@ per rendere la quantità adimensionale. Oltre a questo controllo c'è un limite 
 numero di iterazioni: se si supera \texttt{maxIter} il metodo si ferma e segnala
 di non aver raggiunto la convergenza. Abbiamo fissato $\texttt{maxIter}=20000$.
 
-\subsection{Schema comune: lo splitting}
+\subsection{Metodi stazionari}
 I primi due metodi, Jacobi e Gauss--Seidel, sono metodi stazionari basati su uno
 \emph{splitting} della matrice. Si scrive
 \[
@@ -219,99 +219,101 @@ codice,
 \mathbf{x}^{(k+1)}=\mathbf{x}^{(k)}+P^{-1}\mathbf{r}^{(k)},
 \qquad \mathbf{r}^{(k)}=\mathbf{b}-A\mathbf{x}^{(k)}.
 \]
-Il metodo si dice stazionario perché le matrici $P$ e $N$ non dipendono
-dall'iterazione $k$. La convergenza è garantita quando il raggio spettrale della
+Il metodo si definisce stazionario poiché le matrici $P$ e $N$ rimangono
+fisse; la regola di aggiornamento, quindi, non cambia da un'iterazione
+all'altra. La convergenza è garantita quando il raggio spettrale della
 matrice di iterazione $P^{-1}N$ è minore di $1$. Per matrici SPD questo è sempre
 vero per Gauss--Seidel. Per Jacobi invece non è garantito in generale: vale ad
-esempio se la matrice è a dominanza diagonale stretta. Sulle quattro matrici di
-test entrambi i metodi convergono.
+esempio se la matrice è a dominanza diagonale stretta.
 
 \subsection{Metodo di Jacobi}
-Si prende come $P$ la diagonale di $A$ e come $N$ il resto con segno opposto. La
-$i$-esima componente si aggiorna isolando $x_i$ dalla $i$-esima equazione e
-usando i valori dell'iterazione precedente:
+Si sceglie come matrice di precondizionamento $P$ la sola diagonale di $A$,
+indicata con $D$. La formula di aggiornamento assume quindi la forma:
 \[
-x^{(k+1)}=x^{(k)} + D^{-1}r^{(k)}.
+\mathbf{x}^{(k+1)}=\mathbf{x}^{(k)} + D^{-1}\mathbf{r}^{(k)}.
 \]
-Dato che $P$ è diagonale, la sua inversa è immediata e $P^{-1}\mathbf{r}$ è solo
-il prodotto componente per componente fra il residuo e i reciproci della
-diagonale. Nel codice calcoliamo questi reciproci una volta sola, all'inizio, e
-a ogni passo aggiorniamo \texttt{x += inv\_diag * residual} con una operazione
-vettoriale, senza cicli \texttt{for} di Python; poi ricalcoliamo il residuo con
-\texttt{residual = b - A @ x}. Una iterazione costa quindi un prodotto
-matrice--vettore più operazioni di ordine $O(n)$.
+Essendo $D$ una matrice diagonale, applicare la sua inversa equivale
+semplicemente a dividere ogni componente del residuo per il corrispondente
+elemento sulla diagonale. A livello implementativo, il vettore dei reciproci
+della diagonale viene calcolato una sola volta all'inizio, permettendo di
+eseguire l'aggiornamento con un'unica operazione vettoriale veloce.
 
 \subsection{Metodo di Gauss--Seidel}
-Si prende come $P$ la parte triangolare inferiore di $A$, diagonale compresa. La
-differenza rispetto a Jacobi è che, quando si calcola $x_i^{(k+1)}$, si usano
-subito i valori già aggiornati in questa stessa iterazione per gli indici $j<i$:
+In questo caso si definisce $P$ come la parte triangolare inferiore di $A$,
+ovvero $P = D + L$ (diagonale compresa). La regola di aggiornamento segue la
+stessa forma generale:
 \[
-x_i^{(k+1)}=\frac{1}{a_{ii}}\Big(b_i-\sum_{j<i} a_{ij}\,x_j^{(k+1)}
--\sum_{j>i} a_{ij}\,x_j^{(k)}\Big).
+\mathbf{x}^{(k+1)}=\mathbf{x}^{(k)} + (D+L)^{-1}\mathbf{r}^{(k)}.
 \]
-Non si calcola mai $P^{-1}$: dato che $P$ è triangolare inferiore, il sistema
-$P\mathbf{y}=\mathbf{r}$ si risolve per sostituzione in avanti. Questa
-sostituzione è sequenziale, perché $x_i$ dipende dai valori
-$x_0,\dots,x_{i-1}$ appena calcolati, e quindi non si può vettorizzare. Per non
-pagare un ciclo \texttt{for} lento in Python l'abbiamo scritta in una funzione
-compilata con \texttt{numba}, \texttt{\_gauss\_seidel\_sweep}, che lavora
-direttamente sugli array CSR (\texttt{indptr}, \texttt{indices}, \texttt{data});
-resta comunque codice nostro, perché \texttt{numba} traduce il ciclo in
-linguaggio macchina ma non risolve il sistema al posto nostro. Dopo la sweep
-ricalcoliamo il residuo per il criterio di arresto. Anche qui una iterazione
-costa $O(\text{nnz})$, ma l'uso immediato dei valori aggiornati di solito fa
-convergere in meno iterazioni di Jacobi.
+In pratica, non si calcola mai esplicitamente l'inversa di $P$. Applicare
+$(D+L)^{-1}$ a un vettore significa risolvere il sistema triangolare
+$(D+L)\mathbf{y} = \mathbf{r}^{(k)}$. Data la forma triangolare, questo si
+ottiene procedendo direttamente dall'alto verso il basso (sostituzione in
+avanti), risolvendo un'equazione alla volta e utilizzando i valori appena
+calcolati per le righe successive. L'uso immediato di informazioni aggiornate
+garantisce generalmente una convergenza più rapida rispetto a Jacobi. Poiché
+la sostituzione in avanti è un processo intrinsecamente sequenziale, questa
+fase è stata implementata con un minimo di compilazione JIT per preservare
+l'efficienza.
+
+\subsection{Metodi del gradiente: discesa nel paraboloide}
+Questa famiglia di algoritmi parte da una prospettiva geometrica. Per una
+matrice simmetrica e definita positiva, risolvere il sistema lineare equivale a
+trovare il punto di minimo di una funzione quadratica il cui grafico
+corrisponde a un paraboloide convesso:
+\[
+\phi(\mathbf{y})=\tfrac12\,\mathbf{y}^{t}A\mathbf{y}-\mathbf{b}^{t}\mathbf{y}.
+\]
+Il gradiente di questa funzione corrisponde all'opposto del residuo
+($\nabla\phi(\mathbf{y})=-\mathbf{r}$); in ogni punto, quindi, il residuo
+indica esattamente la direzione di massima pendenza del paraboloide. 
+
+La geometria di questo paraboloide è dettata dal numero di condizionamento
+$\kappa(A)$ della matrice, definito come il rapporto tra l'autovalore massimo
+e minimo. Se il condizionamento è vicino a 1, il paraboloide assomiglia a una
+conca rotonda; se invece è molto grande, assume la forma di una valle lunga e
+stretta.
 
 \subsection{Metodo del Gradiente}
-Per matrici SPD risolvere $A\mathbf{x}=\mathbf{b}$ equivale a cercare il minimo
-della forma quadratica
+Il metodo del Gradiente (o \emph{steepest descent}) adotta la strategia più
+intuitiva: a ogni passo guarda qual è la direzione più ripida in discesa,
+ovvero il residuo $\mathbf{r}^{(k)}$, e avanza lungo quella linea di un passo
+di lunghezza ottima $\alpha_k$. La regola di aggiornamento è:
 \[
-\phi(\mathbf{y})=\tfrac12\,\mathbf{y}^{t}A\mathbf{y}-\mathbf{b}^{t}\mathbf{y},
-\qquad \nabla\phi(\mathbf{y})=A\mathbf{y}-\mathbf{b}.
-\]
-Il gradiente cambiato di segno coincide con il residuo, quindi la direzione di
-massima discesa è proprio $\mathbf{r}^{(k)}$. Ci si muove lungo questa direzione
-di un passo $\alpha_k$ scelto in modo da minimizzare $\phi$ lungo la retta:
-\[
-\alpha_k=\frac{(\mathbf{r}^{(k)})^{t}\mathbf{r}^{(k)}}
-{(\mathbf{r}^{(k)})^{t}A\,\mathbf{r}^{(k)}},
-\qquad
 \mathbf{x}^{(k+1)}=\mathbf{x}^{(k)}+\alpha_k\,\mathbf{r}^{(k)}.
 \]
-Il passo cambia a ogni iterazione, quindi il metodo non è stazionario. Nel
-codice calcoliamo una sola volta per iterazione il prodotto $A\mathbf{r}^{(k)}$ e
-lo riusiamo sia per $\alpha_k$ sia per aggiornare il residuo senza un secondo
-prodotto matrice--vettore, $\mathbf{r}^{(k+1)}=\mathbf{r}^{(k)}-\alpha_k\,
-A\mathbf{r}^{(k)}$; questa è la stessa quantità che serve al criterio di arresto,
-quindi il residuo è già disponibile. Il metodo converge per ogni dato iniziale,
-ma il numero di iterazioni cresce con il numero di condizionamento di $A$:
-quando gli autovalori sono molto diversi la discesa procede a zig-zag e servono
-molti passi.
+Il difetto di questa strategia emerge quando la matrice è mal condizionata
+(paraboloide stretto e lungo). In questo scenario, la direzione più ripida non
+punta verso il fondo della valle, ma verso la parete opposta. Il percorso
+compie continui rimbalzi da una parete all'altra con un andamento a
+\emph{zig-zag}, avanzando pochissimo verso il minimo globale e impiegando
+migliaia di iterazioni per smorzare l'errore.
 
 \subsection{Metodo del Gradiente coniugato}
-Il difetto del gradiente è che può tornare a muoversi lungo una direzione su cui
-era già ottimale, da cui lo zig-zag. Il gradiente coniugato sceglie le direzioni
-$\mathbf{d}^{(k)}$ in modo che siano $A$-coniugate, cioè
-$(\mathbf{d}^{(i)})^{t}A\,\mathbf{d}^{(j)}=0$ per $i\neq j$; così, una volta
-minimizzato lungo una direzione, non serve più tornarci. La direzione nuova è il
-residuo corretto con la direzione precedente:
+Il problema dello zig-zag risiede nel fatto che ogni passo rovina in parte il
+lavoro compiuto dai passi precedenti. In termini formali, dopo un passo del
+gradiente la nuova stima è \emph{ottimale} rispetto alla direzione appena
+usata (ovvero non si può scendere ulteriormente lungo quella retta, il che
+implica che la direzione è ortogonale al nuovo residuo). Tuttavia, il passo
+successivo rompe questa ottimalità, costringendo il metodo a tornare a
+correggere lungo direzioni già sistemate.
+
+Il Gradiente coniugato elimina questo difetto scegliendo direzioni di ricerca
+$\mathbf{d}^{(k)}$ che non interferiscono tra loro. Più precisamente, le
+direzioni sono \emph{$A$-coniugate} (o $A$-ortogonali). La conseguenza diretta
+è che, una volta raggiunto il minimo lungo una direzione, nessun passo futuro
+lo disferà. Ogni iterazione "sistema definitivamente" una dimensione dello
+spazio; in aritmetica esatta, la soluzione corretta verrebbe raggiunta in al
+più $n$ iterazioni.
+
+In pratica, la stima viene aggiornata lungo queste nuove direzioni, ottenute
+correggendo il residuo con un frammento della direzione precedente:
 \[
-\alpha_k=\frac{(\mathbf{r}^{(k)})^{t}\mathbf{r}^{(k)}}
-{(\mathbf{d}^{(k)})^{t}A\,\mathbf{d}^{(k)}},\qquad
-\mathbf{x}^{(k+1)}=\mathbf{x}^{(k)}+\alpha_k\,\mathbf{d}^{(k)},
+\mathbf{x}^{(k+1)}=\mathbf{x}^{(k)}+\alpha_k\,\mathbf{d}^{(k)}.
 \]
-\[
-\beta_k=\frac{(\mathbf{r}^{(k+1)})^{t}\mathbf{r}^{(k+1)}}
-{(\mathbf{r}^{(k)})^{t}\mathbf{r}^{(k)}},\qquad
-\mathbf{d}^{(k+1)}=\mathbf{r}^{(k+1)}+\beta_k\,\mathbf{d}^{(k)}.
-\]
-In aritmetica esatta il metodo converge in al più $n$ iterazioni; in pratica il
-numero di iterazioni cresce circa come $\sqrt{\mathrm{cond}(A)}$, molto meno del
-gradiente semplice. Come per il gradiente, nel codice si calcola un solo prodotto
-matrice--vettore per iterazione, $A\mathbf{d}^{(k)}$, riusato per $\alpha_k$ e per
-aggiornare il residuo; teniamo da parte $\|\mathbf{r}^{(k)}\|^2$ così che
-$\beta_k$ e il valore del residuo per il criterio di arresto non costino calcoli
-aggiuntivi.
+Procedendo in questo modo, il numero di iterazioni necessarie per convergere
+cresce proporzionalmente a $\sqrt{\kappa(A)}$, un risultato enormemente
+migliore rispetto al gradiente semplice.
 
 \subsection{Architettura della libreria}
 La traccia chiede una libreria strutturata, non una sequenza di funzioni scollegate.
